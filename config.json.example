@@ -1,0 +1,6 @@
+{
+    "docker": "/var/lib/open-webui/webui.db",
+    "main": "/home/randy/programs/py_progs/openwebui/webui.db",
+    "backup": "/home/randy/programs/py_progs/openwebui/backups/webui_backup_20250918_102142.db",
+    "venv": "/home/randy/programs/py_progs/openwebui/venv/lib/python3.11/site-packages/open_webui/data/webui.db"
+}

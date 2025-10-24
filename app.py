@@ -5,13 +5,15 @@ import os
 
 app = Flask(__name__)
 
-# List of available database files
-DATABASE_FILES = {
-    'docker': '/var/lib/open-webui/webui.db',
-    'main': '/home/randy/programs/py_progs/openwebui/webui.db',
-    'backup': '/home/randy/programs/py_progs/openwebui/backups/webui_backup_20250918_102142.db',
-    'venv': '/home/randy/programs/py_progs/openwebui/venv/lib/python3.11/site-packages/open_webui/data/webui.db'
-}
+# Load database paths from a configuration file
+CONFIG_PATH = 'config.json'
+
+# Load the configuration file
+if os.path.exists(CONFIG_PATH):
+    with open(CONFIG_PATH, 'r') as config_file:
+        DATABASE_FILES = json.load(config_file)
+else:
+    raise FileNotFoundError(f"Configuration file not found: {CONFIG_PATH}")
 
 def get_db_connection(db_path):
     """Create a database connection to the specified database."""

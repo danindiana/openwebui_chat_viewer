@@ -12,3 +12,10 @@ venv/
 .idea/
 *.swp
 *.swo
+
+# Exclude documentation files
+*.md
+!README.md
+
+# Exclude local configuration files
+config.json

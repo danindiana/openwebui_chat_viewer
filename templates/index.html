@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenWebUI Chat Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: #fff;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background-color: #4a5568;
+            color: white;
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        #db-selector {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+        }
+
+        .chat-list {
+            list-style: none;
+        }
+
+        .chat-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+
+        .chat-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .chat-item.active {
+            background-color: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+
+        .chat-title {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-date {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background-color: #4a5568;
+            color: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .chat-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .message-role {
+            font-weight: 600;
+            font-size: 14px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            text-transform: capitalize;
+        }
+
+        .message-role.user {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .message-role.assistant {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .message-role.system {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background-color: #e3f2fd;
+        }
+
+        .message.assistant .message-content {
+            background-color: #f5f5f5;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            padding: 20px;
+            background-color: #ffebee;
+            color: #c62828;
+            border-radius: 4px;
+            margin: 20px;
+        }
+
+        .debug-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>OpenWebUI Chats</h1>
+                <select id="db-selector"></select>
+            </div>
+            <ul class="chat-list" id="chat-list">
+                <li class="loading">Loading chats...</li>
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-header">
+                <h2 id="chat-header-title">Select a chat to view</h2>
+            </div>
+            <div class="messages-container" id="messages-container">
+                <div class="empty-state">
+                    <div class="empty-state-icon">💭</div>
+                    <p>Select a chat from the sidebar to view messages</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dbSelector = document.getElementById('db-selector');
+            const chatList = document.getElementById('chat-list');
+            const messagesContainer = document.getElementById('messages-container');
+            const chatHeaderTitle = document.getElementById('chat-header-title');
+
+            let currentDb = '';
+
+            // --- Database Loading ---
+            function loadDatabases() {
+                fetch('/api/databases')
+                    .then(response => response.json())
+                    .then(databases => {
+                        dbSelector.innerHTML = '';
+                        for (const key in databases) {
+                            const option = document.createElement('option');
+                            option.value = key;
+                            option.textContent = key.charAt(0).toUpperCase() + key.slice(1); // Capitalize
+                            dbSelector.appendChild(option);
+                        }
+                        currentDb = dbSelector.value;
+                        loadChats();
+                    })
+                    .catch(error => console.error('Error loading databases:', error));
+            }
+
+            // --- Chat List Loading ---
+            function loadChats() {
+                if (!currentDb) return;
+                
+                fetch(`/api/chats?db=${currentDb}`)
+                    .then(response => response.json())
+                    .then(chats => {
+                        chatList.innerHTML = '';
+                        if (chats.length === 0) {
+                            chatList.innerHTML = '<li class="chat-item">No chats found in this database.</li>';
+                            messagesContainer.innerHTML = '';
+                            chatHeaderTitle.textContent = 'No chats available';
+                            return;
+                        }
+                        
+                        chats.forEach(chat => {
+                            const li = document.createElement('li');
+                            li.className = 'chat-item';
+                            li.dataset.chatId = chat.id;
+                            
+                            const titleDiv = document.createElement('div');
+                            titleDiv.className = 'chat-title';
+                            titleDiv.textContent = chat.title;
+                            
+                            li.appendChild(titleDiv);
+                            
+                            li.addEventListener('click', () => {
+                                loadChatMessages(chat.id, chat.title);
+                                // Highlight active chat
+                                document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+                                li.classList.add('active');
+                            });
+                            
+                            chatList.appendChild(li);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading chats:', error);
+                        chatList.innerHTML = '<li class="chat-item">Error loading chats.</li>';
+                    });
+            }
+
+            // --- Message Loading ---
+            function loadChatMessages(chatId, chatTitle) {
+                fetch(`/api/chats/${chatId}?db=${currentDb}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        chatHeaderTitle.textContent = data.title || chatTitle;
+                        messagesContainer.innerHTML = '';
+                        
+                        if (data.messages && data.messages.length > 0) {
+                            data.messages.forEach(msg => {
+                                const messageDiv = document.createElement('div');
+                                messageDiv.className = `message ${msg.role}`;
+                                
+                                const headerDiv = document.createElement('div');
+                                headerDiv.className = 'message-header';
+                                
+                                const roleSpan = document.createElement('span');
+                                roleSpan.className = `message-role ${msg.role}`;
+                                roleSpan.textContent = msg.role;
+                                
+                                headerDiv.appendChild(roleSpan);
+                                
+                                const contentDiv = document.createElement('div');
+                                contentDiv.className = 'message-content';
+                                // Basic markdown for code blocks
+                                contentDiv.innerHTML = formatMessageContent(msg.content);
+
+                                messageDiv.appendChild(headerDiv);
+                                messageDiv.appendChild(contentDiv);
+                                
+                                messagesContainer.appendChild(messageDiv);
+                            });
+                        } else {
+                            messagesContainer.innerHTML = '<p>No messages in this chat.</p>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading messages:', error);
+                        messagesContainer.innerHTML = '<p>Error loading messages.</p>';
+                    });
+            }
+
+            function formatMessageContent(content) {
+                // Escape HTML to prevent XSS
+                const escapedContent = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                // Simple markdown for code blocks ```lang\ncode\n```
+                return escapedContent.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+                    return `<pre><code>${code.trim()}</code></pre>`;
+                });
+            }
+
+            // --- Event Listeners ---
+            dbSelector.addEventListener('change', (event) => {
+                currentDb = event.target.value;
+                chatList.innerHTML = '<li class="chat-item">Loading chats...</li>';
+                messagesContainer.innerHTML = '';
+                chatHeaderTitle.textContent = 'Select a chat to view';
+                loadChats();
+            });
+
+            // --- Initial Load ---
+            loadDatabases();
+        });
+    </script>
+</body>
+</html>
